@@ -207,7 +207,7 @@ const TASK_SELECT = `
 
 const server = new McpServer({
   name: "things3-mcp",
-  version: "1.0.0",
+  version: "1.0.1",
 });
 
 // --- Write tools -----------------------------------------------------------

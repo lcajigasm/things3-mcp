@@ -1,6 +1,6 @@
 {
   "name": "@lcajigasm/things3-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server connecting Claude to Things 3 on macOS via its URL scheme (write) and local database (read)",
   "type": "module",
   "bin": {
