@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -24,10 +24,35 @@ if (process.platform !== "darwin") {
 
 const AUTH_TOKEN = process.env.THINGS_AUTH_TOKEN;
 
-const DB_PATH = path.join(
+const THINGS_CONTAINER = path.join(
   homedir(),
-  "Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/Things Database.thingsdatabase/main.sqlite"
+  "Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac"
 );
+
+// Things nests the database under a per-install "ThingsData-<id>" folder
+// (the id varies per machine/account), so the path can't be hardcoded.
+function findThingsDbPath(): string | null {
+  const override = process.env.THINGS_DB_PATH;
+  if (override) return override;
+
+  if (!existsSync(THINGS_CONTAINER)) return null;
+
+  const candidates = readdirSync(THINGS_CONTAINER)
+    .filter((name) => name.startsWith("ThingsData-"))
+    .map((name) =>
+      path.join(THINGS_CONTAINER, name, "Things Database.thingsdatabase", "main.sqlite")
+    )
+    .filter((dbPath) => existsSync(dbPath));
+
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  // Multiple ThingsData folders can linger after a reinstall — use the most
+  // recently written one.
+  return candidates.sort(
+    (a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs
+  )[0];
+}
 
 // ---------------------------------------------------------------------------
 // Things URL scheme (write operations)
@@ -117,13 +142,15 @@ let db: Database.Database | null = null;
 
 function getDb(): Database.Database {
   if (db) return db;
-  if (!existsSync(DB_PATH)) {
+  const dbPath = findThingsDbPath();
+  if (!dbPath) {
     throw new ThingsError(
-      `Could not find the Things 3 database at "${DB_PATH}". ` +
-        "Make sure Things 3 is installed and has been opened at least once."
+      `Could not find the Things 3 database under "${THINGS_CONTAINER}". ` +
+        "Make sure Things 3 is installed and has been opened at least once, " +
+        "or set THINGS_DB_PATH to the main.sqlite file explicitly."
     );
   }
-  db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
+  db = new Database(dbPath, { readonly: true, fileMustExist: true });
   return db;
 }
 

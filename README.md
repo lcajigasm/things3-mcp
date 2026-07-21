@@ -80,6 +80,7 @@ Then point Claude Desktop at the built file:
 | Variable | Required | Description |
 |---|---|---|
 | `THINGS_AUTH_TOKEN` | Only for `update_todo` / `update_project` | Auth token from Things → Settings → General → Enable Things URls. Never logged or echoed back by this server. |
+| `THINGS_DB_PATH` | No | Overrides auto-detection of the database file. Things nests it under a per-install `ThingsData-<id>` folder, which this server locates automatically — set this only if that detection fails for you. |
 
 ## Available tools
 
